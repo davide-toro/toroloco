@@ -57,6 +57,12 @@ input{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:14px
 #sos:active{transform:scale(.94)}
 @keyframes sosp{0%,100%{box-shadow:0 0 0 6px rgba(255,31,58,.25),0 0 26px rgba(255,31,58,.7)}50%{box-shadow:0 0 0 14px rgba(255,31,58,.1),0 0 40px rgba(255,31,58,.95)}}
 @media (prefers-reduced-motion:reduce){#sos{animation:none}}
+#sosW{position:relative;width:104px;height:104px;margin:40px auto 34px}
+#sosW #sos{margin:0;position:relative;z-index:2;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:none}
+#sosR{position:absolute;inset:0;border-radius:50%;border:4px solid #fff;opacity:0;transform:scale(1);pointer-events:none;z-index:1;box-shadow:0 0 22px rgba(255,31,58,.9);transition:transform .25s ease-out,opacity .2s}
+#sosW.hold #sosR{opacity:.95;transform:scale(2.3);transition:transform 2s linear,opacity .15s}
+#sosW.hold #sos{animation:none;transform:scale(.94)}
+#sosW.sent #sos{background:#fff;color:#ff1f3a}
 .maplink{display:inline-block;margin:8px 6px 0 0;padding:7px 12px;border-radius:99px;border:1px solid currentColor;color:inherit;text-decoration:none;font-size:13px;font-weight:700}
 .hide{display:none}
 </style>
@@ -83,7 +89,7 @@ input{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:14px
       </div>
       <p class="mut" id="pos">Posizione: in attesa…</p>
       <button class="btn" id="go"><img id="goI" alt=""><span id="goT">Avvia giro</span></button>
-      <button id="sos" aria-label="SOS">SOS</button><p class="mut" style="text-align:center;margin:8px 0 0">Tocca due volte per mandare la tua posizione sulla mappa alla chat</p><p class="mut" id="msg"></p>
+      <div id="sosW"><span id="sosR"></span><button id="sos" aria-label="SOS, tieni premuto">SOS</button></div><p class="mut" style="text-align:center;margin:8px 0 0">Tieni premuto SOS per 2 secondi: la tua posizione sulla mappa arriva in chat</p><p class="mut" id="msg"></p>
     </div>
     <div class="card hide" id="sum">
       <h2>Riepilogo giro</h2>
@@ -384,16 +390,25 @@ $("evGo").onclick=async()=>{
  try{await S.db.doc("events/e"+Date.now()+"_"+Math.random().toString(36).slice(2,6)).set({title:t,when:w,place:$("evP").value.trim(),note:$("evN").value.trim(),by:S.uid,byName:S.rider.name,going:[S.uid],ts:Date.now()});
   ["evT","evP","evN"].forEach(i=>$(i).value="");$("evMsg").textContent="Uscita creata.";}catch(er){$("evMsg").textContent="Errore: "+(er.message||er.code)}
 };
-let sosArm=0;
-function sendSos(a,b){S.db.doc("chat/m"+Date.now()+"_sos").set({uid:S.uid,name:S.rider.name,sos:true,text:"SOS! Ho bisogno di aiuto.",lat:+a.toFixed(6),lng:+b.toFixed(6),ts:Date.now()}).then(()=>{$("msg").textContent="SOS inviato nella chat."})}
-$("sos").onclick=()=>{
+function sendSos(a,b){S.db.doc("chat/m"+Date.now()+"_sos").set({uid:S.uid,name:S.rider.name,sos:true,text:"SOS! Ho bisogno di aiuto.",lat:+a.toFixed(6),lng:+b.toFixed(6),ts:Date.now()}).then(()=>{$("msg").textContent="SOS inviato nella chat, con la tua posizione sulla mappa."}).catch(e=>{$("msg").textContent="SOS non inviato: "+(e.message||e.code)})}
+function buzz(){
+ try{if(navigator.vibrate){navigator.vibrate([250,100,250,100,500]);return}}catch(e){}
+ try{const l=document.createElement("label");l.style.cssText="position:fixed;left:-99px;top:0;opacity:0";const i=document.createElement("input");i.type="checkbox";i.setAttribute("switch","");l.appendChild(i);document.body.appendChild(l);l.click();setTimeout(()=>l.remove(),80)}catch(e){}
+}
+function fireSos(){
+ buzz();const w=$("sosW");w.classList.add("sent");setTimeout(()=>w.classList.remove("sent"),1500);
  if(!S.db){$("msg").textContent="SOS disponibile solo con la community collegata.";return}
- if(Date.now()-sosArm>4000){sosArm=Date.now();$("msg").textContent="Tocca di nuovo SOS entro 4 secondi per confermare.";return}
- sosArm=0;
  const l=S.pts[S.pts.length-1];
- if(l)return sendSos(l[0],l[1]);
- navigator.geolocation.getCurrentPosition(p=>sendSos(p.coords.latitude,p.coords.longitude),()=>{$("msg").textContent="Posizione non disponibile."},{timeout:8000});
-};
+ if(l){$("msg").textContent="Invio SOS…";return sendSos(l[0],l[1])}
+ $("msg").textContent="Cerco la tua posizione…";
+ navigator.geolocation.getCurrentPosition(p=>sendSos(p.coords.latitude,p.coords.longitude),()=>{$("msg").textContent="Posizione non disponibile: controlla il permesso a Safari."},{timeout:8000,enableHighAccuracy:true});
+}
+let sosT=null;
+function sosStart(e){e.preventDefault();if(sosT)return;try{e.target.setPointerCapture(e.pointerId)}catch(x){}
+ $("sosW").classList.add("hold");$("msg").textContent="Continua a tenere premuto…";
+ sosT=setTimeout(()=>{sosT=null;$("sosW").classList.remove("hold");fireSos()},2000)}
+function sosCancel(){if(sosT){clearTimeout(sosT);sosT=null;$("sosW").classList.remove("hold");$("msg").textContent="SOS annullato: tieni premuto più a lungo per inviarlo."}}
+(()=>{const b=$("sos");b.addEventListener("pointerdown",sosStart);["pointerup","pointercancel"].forEach(v=>b.addEventListener(v,sosCancel));b.addEventListener("contextmenu",e=>e.preventDefault());})();
 $("pub").onclick=async()=>{
  if(!S.pending)return;
  if(!S.db){$("msg").textContent="Pubblicazione non disponibile in modalità locale.";return}
