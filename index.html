@@ -78,7 +78,7 @@ input{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:14px
 .msg .cimg{display:block;max-width:100%;max-height:220px;border-radius:12px;margin-top:6px;cursor:zoom-in}
 #lb{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:80;display:none;align-items:center;justify-content:center}#lb.on{display:flex}#lb img{max-width:96vw;max-height:92vh;border-radius:8px}
 .send .ico{padding:0;width:52px;flex:none;display:flex;align-items:center;justify-content:center}.ico svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#splash{position:fixed;inset:0;z-index:100;background:radial-gradient(circle at 50% 42%,#3a0a12 0,#120307 45%,#000 80%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .6s,transform .6s}
+#splash{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100vh;height:100dvh;overflow:hidden;z-index:100;background:radial-gradient(circle at 50% 42%,#3a0a12 0,#120307 45%,#000 80%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .6s,transform .6s}
 #splash.out{opacity:0;transform:scale(1.08);pointer-events:none}
 #splash .sl{width:min(70vw,300px);animation:spIn .9s cubic-bezier(.2,.9,.3,1.2) 1.05s both,spGlow 2.2s ease-in-out 1.95s infinite}
 #splash h1{margin:0;font:800 34px/1 var(--mono);letter-spacing:.32em;padding-left:.32em;color:var(--ac);text-shadow:0 0 18px rgba(255,45,61,.85);animation:spUp .8s 1.5s both}
@@ -478,8 +478,8 @@ $("pub").onclick=async()=>{
 };
 (()=>{const sp=$("splash");let seen=false;try{seen=sessionStorage.getItem("tl_sp")==="1"}catch(e){}
  if(seen){sp.remove();return}
- const lg=$("tbLogo")||document.querySelector(".logo img");if(lg)sp.querySelector(".sl").src=lg.src;const bi=document.querySelector("#bull img");if(bi)sp.querySelector(".sb img").src=bi.src;
- let done=false;const end=()=>{if(done)return;done=true;try{sessionStorage.setItem("tl_sp","1")}catch(e){}sp.classList.add("out");setTimeout(()=>sp.remove(),700)};
+ document.documentElement.style.overflow="hidden";const lg=$("tbLogo")||document.querySelector(".logo img");if(lg)sp.querySelector(".sl").src=lg.src;const bi=document.querySelector("#bull img");if(bi)sp.querySelector(".sb img").src=bi.src;
+ let done=false;const end=()=>{if(done)return;done=true;document.documentElement.style.overflow="";window.scrollTo(0,0);try{sessionStorage.setItem("tl_sp","1")}catch(e){}sp.classList.add("out");setTimeout(()=>sp.remove(),700)};
  sp.addEventListener("click",end);setTimeout(end,3000)})();
 /* ===== mappe, meteo, foto, uscite di gruppo ===== */
 S.maps=[];S.rides=[];S.wc={};S.pick=null;
